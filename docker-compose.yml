@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+
+  # ─────────────────────────────────────────
+  # MySQL Database
+  # ─────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: otp-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: otp_demo
+      MYSQL_USER: ekart
+      MYSQL_PASSWORD: ekart123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql   # optional DB init script
+    networks:
+      - otp-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────
+  # Redis (OTP Storage with TTL)
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: otp-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass redis123
+    networks:
+      - otp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # MailHog (Fake SMTP for local dev — catch all emails)
+  # ─────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: otp-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP port (your app sends mail here)
+      - "8025:8025"   # Web UI to view emails (http://localhost:8025)
+    networks:
+      - otp-network
+
+  # ─────────────────────────────────────────
+  # Spring Boot OTP Login Application
+  # ─────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: otp-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # ── Database ──
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/otp_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ekart
+      SPRING_DATASOURCE_PASSWORD: ekart123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+
+      # ── Redis ──
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: redis123
+
+      # ── Mail (MailHog for local dev) ──
+      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_PORT: 1025
+      SPRING_MAIL_USERNAME: no-reply@ekart.com
+      SPRING_MAIL_PASSWORD: ""
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"
+
+      # ── JWT ──
+      APP_JWT_SECRET: bXlTdXBlclNlY3JldEtleUZvckpXVEF1dGhlbnRpY2F0aW9u
+      APP_JWT_EXPIRATION: 86400000
+
+      # ── OTP Config ──
+      APP_OTP_EXPIRY_MINUTES: 5
+      APP_OTP_LENGTH: 6
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - otp-network
+
+# ─────────────────────────────────────────
+# Named Volumes
+# ─────────────────────────────────────────
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ─────────────────────────────────────────
+# Network
+# ─────────────────────────────────────────
+networks:
+  otp-network:
+    driver: bridge

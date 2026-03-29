@@ -1,0 +1,43 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/otp_demo?useSSL=false&allowPublicKeyRetrieval=true
+    username: ekart
+    password: ekart123
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # ← must be 'update' or 'create'
+    show-sql: true       # turn this on temporarily to see SQL
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123
+
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${My_Email}
+    password: ${My_Password}  # Use Gmail App Password
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+
+app:
+  jwt:
+    secret: K7gNU3sdo+OL0wNhqoVWhr3g6s1xYv72ol/pe/Unols=
+    expiration: 86400000  # 1 day in ms
+  otp:
+    expiry-minutes: 5
+    length: 6
+
+
+
+#  My_Email=sidjoshi22032000@gmail.com;My_Password=xjqbifyykbluwzhl
