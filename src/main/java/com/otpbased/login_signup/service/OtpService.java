@@ -34,14 +34,14 @@ public class OtpService {
     }
 
     // Save OTP in Redis with TTL
-    public void saveOtp(String email, String otp) {
-        String key = OTP_PREFIX + email;
+    public void saveOtp(String emailOrPhone, String otp) {
+        String key = OTP_PREFIX + emailOrPhone;
         redisTemplate.opsForValue().set(key, otp, expiryMinutes, TimeUnit.MINUTES);
     }
 
     // Validate OTP entered by user
-    public boolean validateOtp(String email, String otp) {
-        String key = OTP_PREFIX + email;
+    public boolean validateOtp(String emailOrPhone, String otp) {
+        String key = OTP_PREFIX + emailOrPhone;
         String storedOtp = redisTemplate.opsForValue().get(key);
 
         if (storedOtp == null) {
@@ -53,12 +53,13 @@ public class OtpService {
         }
 
         // Delete OTP after successful validation (one-time use)
-        redisTemplate.delete(key);
+        deleteOtp(emailOrPhone);
         return true;
     }
 
-    public void deleteOtp(String email) {
-        redisTemplate.delete(OTP_PREFIX + email);
+
+    public void deleteOtp(String emailOrPhone) {
+        redisTemplate.delete(OTP_PREFIX + emailOrPhone);
     }
 
 }

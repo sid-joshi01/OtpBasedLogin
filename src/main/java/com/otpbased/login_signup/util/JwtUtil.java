@@ -23,9 +23,9 @@ public class JwtUtil {
     private long expiration;
 
     // Generate token for a user after OTP verification
-    public String generateToken(String email) {
+    public String generateToken(String emailOrPhone) {
         return builder()
-                .setSubject(email)
+                .setSubject(emailOrPhone)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

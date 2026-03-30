@@ -13,6 +13,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final OtpService otpService;
     private final EmailService emailService;
+    private final SmsService smsService;
     private final JwtUtil jwtUtil;
 
     // Step 1: Request OTP
@@ -46,5 +47,29 @@ public class AuthService {
 
         // Generate and return JWT
         return jwtUtil.generateToken(email);
+    }
+
+
+    public String requestSmsOtp(String toNumber) {
+        userRepository.findByPhone(toNumber).orElseGet(() ->
+                User.builder()
+                        .phone(toNumber)
+                        .verified(false)
+                        .build()
+        );
+        String otp = otpService.generateOtp();
+        otpService.saveOtp(toNumber, otp);
+        smsService.sendOtp(toNumber, otp);
+        return "OTP sent to " + toNumber;
+    }
+
+    public String verifySmsOtp(String toNumber, String otp) {
+        otpService.validateOtp(toNumber, otp);
+
+        User user = userRepository.findByPhone(toNumber)
+                .orElseThrow(() -> new RuntimeException("User not found with phone number " + toNumber));
+        user.setVerified(true);
+        userRepository.save(user);
+        return jwtUtil.generateToken(toNumber);
     }
 }

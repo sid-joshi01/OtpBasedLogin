@@ -71,6 +71,14 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+		<!-- SMS - send OTP via phone -->
+		<dependency>
+			<groupId>com.twilio.sdk</groupId>
+			<artifactId>twilio</artifactId>
+			<version>11.0.2</version>
+			<scope>compile</scope>
+		</dependency>
+
 		<!-- JPA + DB -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
